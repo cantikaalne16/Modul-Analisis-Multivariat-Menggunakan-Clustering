@@ -62,5 +62,6 @@ Penelitian ini menggunakan dataset **Maternal Health Risk Assessment** yang dipe
 - Fuzzy C-Means (FCM)
 - Evaluasi dilakukan menggunakan **Silhouette Index**. 
 
-Analisis dilakukan menggunakan bahasa pemrograman **R** dan dipublikasikan melalui **RPubs** 
+Analisis dilakukan menggunakan bahasa pemrograman **R** dan dipublikasikan melalui **RPubs**
+<br>
 🔗 https://rpubs.com/sofiadwik/1420940 
