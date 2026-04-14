@@ -14,16 +14,11 @@ Dinda Galuh Guminta, M.Stat.
 
 ---
 
-## Deskripsi Penelitian
+## Deskripsi Dataset
 
-Penelitian ini membandingkan lima metode clustering untuk mengelompokkan pola risiko kesehatan ibu hamil berdasarkan dataset **Maternal Health Risk Assessment** yang memuat 1.205 observasi dan 11 variabel klinis.
-
-Metode yang dibandingkan:
-- **K-Means** — clustering berbasis rata-rata dengan Euclidean Distance
-- **K-Medians** — pengembangan K-Means yang robust terhadap outlier menggunakan Manhattan Distance
-- **DBSCAN** — clustering berbasis kepadatan, mampu mendeteksi noise
-- **Mean Shift** — clustering adaptif tanpa asumsi jumlah cluster
-- **Fuzzy C-Means** — clustering berbasis logika fuzzy dengan derajat keanggotaan ganda
+Penelitian ini membandingkan lima metode clustering untuk mengelompokkan pola risiko kesehatan ibu hamil berdasarkan dataset **Maternal Health Risk Assessment** yang diperoleh dari Mendeley Data, diterbitkan pada 1 November 2024. Dataset memuat 1.205 observasi dan 11 variabel.
+<br>
+🔗 https://data.mendeley.com/datasets/p5w98dvbbk/1 
 
 ---
 
@@ -45,22 +40,14 @@ Metode yang dibandingkan:
 
 ---
 
-## Dataset
-
-Penelitian ini menggunakan dataset **Maternal Health Risk Assessment** yang diperoleh dari Mendeley Data, diterbitkan pada 1 November 2024. Dataset memuat 1.205 observasi dengan informasi klinis dan fisiologis ibu hamil mencakup indikator seperti usia, tekanan darah, kadar gula darah, suhu tubuh, dan BMI.
-
-🔗 https://data.mendeley.com/datasets/p5w98dvbbk/1 
-
----
-
 ## Metode Analisis
 
-- K-Means Clustering
-- K-Medians Clustering
-- DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
-- Mean Shift Clustering
-- Fuzzy C-Means (FCM)
-- Evaluasi dilakukan menggunakan **Silhouette Index**. 
+- **K-Means Clustering** — clustering berbasis rata-rata dengan Euclidean Distance
+- **K-Medians Clustering** — pengembangan K-Means yang robust terhadap outlier menggunakan Manhattan Distance
+- **DBSCAN (Density-Based Spatial Clustering of Applications with Noise)** — clustering berbasis kepadatan, mampu mendeteksi noise
+- **Mean Shift Clustering** — clustering adaptif tanpa asumsi jumlah cluster
+- **Fuzzy C-Means (FCM)** — clustering berbasis logika fuzzy dengan derajat keanggotaan ganda
+- Evaluasi dilakukan menggunakan **Silhouette Index**.
 
 Analisis dilakukan menggunakan bahasa pemrograman **R** dan dipublikasikan melalui **RPubs**
 <br>
