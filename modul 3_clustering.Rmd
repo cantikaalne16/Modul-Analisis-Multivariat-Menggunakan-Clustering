@@ -1,7 +1,3 @@
----
-output: html_document
----
-
 ## **Implementasi dan Perbandingan Metode Clustering (K-Means, K-Median, DBSCAN, Mean Shift, dan Fuzzy C-Means) Pada Dataset Kesehatan Ibu Hamil**
 
 ### Cantika Latifatul Nur Ella (24031554023), Sofia Dwi Kinasih (24031554079)
