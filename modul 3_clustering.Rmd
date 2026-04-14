@@ -1,0 +1,700 @@
+---
+output: html_document
+---
+
+## **Implementasi dan Perbandingan Metode Clustering (K-Means, K-Median, DBSCAN, Mean Shift, dan Fuzzy C-Means) Pada Dataset Kesehatan Ibu Hamil**
+
+### Cantika Latifatul Nur Ella (24031554023), Sofia Dwi Kinasih (24031554079)
+### Dosen Pengampu Mata Kuliah: Dinda Galuh Guminta, M.Stat.
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r}
+#install necessary package
+#install.packages("flexclust") #kmedian
+#install.packages("dbscan") #dbscan
+#install.packages("meanShiftR") #meanshift
+#install.packages("e1071") # fuzzy c-means
+#install.packages("cluster") #silhouette score
+#install.packages("fpc") #another metrics
+#install.packages("mclust") # ARI metrics to compare cluster with true label 
+```
+
+```{r}
+#install.packages("tidyverse")
+```
+
+```{r}
+library(tidyverse)
+library(flexclust)
+library(dbscan)
+library(meanShiftR)
+library(e1071)
+library(cluster)
+library(fpc)
+library(mclust)
+```
+
+
+#### import data
+```{r}
+data <- read.csv("D:/SEMESTER 4/Materi Sofia/AnMul/Modul 3 Clustering/Dataset - Updated.csv")
+```
+
+#### pilih hanya variabel numerik
+```{r}
+data_num <- data[, sapply(data, is.numeric)]
+```
+
+#### cek struktur
+```{r}
+str(data_num)
+```
+```{r}
+#install.packages('psych')
+```
+
+
+```{r}
+summary(data_num)
+
+library(psych)
+# statistik lebih lengkap
+describe(data_num)
+```
+
+#### cek missing value
+```{r}
+colSums(is.na(data_num))
+```
+```{r}
+# handling missing value
+data_num1 <- data.frame(lapply(data_num, function(x) {
+  x[is.na(x)] <- median(x, na.rm = TRUE)
+  return(x)
+}))
+```
+
+#### cek missing value stlh handling
+```{r}
+colSums(is.na(data_num1))
+```
+
+```{r}
+summary(data_num1)
+describe(data_num1)
+```
+
+```{r}
+desc <- describe(data_num1)
+```
+
+
+#### Simpan bentuk tabel
+```{r}
+#install.packages("openxlsx")
+library(openxlsx)
+desc_table <- data.frame(
+  Variable = rownames(desc),
+  Mean = round(desc$mean, 3),
+  Median = round(desc$median, 3),
+  SD = round(desc$sd, 3),
+  Min = desc$min,
+  Max = desc$max
+)
+write.xlsx(desc_table, "tabel_deskriptif.xlsx", rowNames = FALSE)
+```
+
+#### Plot distribusi tiap variabel
+```{r}
+library(ggplot2)
+
+data_long <- stack(data_num1)
+ggplot(data_long, aes(x = values)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  facet_wrap(~ ind, scales = "free") +
+  theme_minimal()
+```
+
+#### Visualisasi boxplot 
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+data_long <- data_num1 %>%
+  pivot_longer(cols = everything(),
+               names_to = "Variable",
+               values_to = "Value")
+ggplot(data_long, aes(x = Variable, y = Value)) +
+  geom_boxplot(fill = "#69b3a2", alpha = 0.7) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Boxplot Seluruh Variabel Numerik",
+       x = "Variabel",
+       y = "Nilai")
+```
+
+#### standarisasi skala
+```{r}
+df_scaled <- scale(data_num1)
+
+data_scaled_long <- as.data.frame(df_scaled) %>%
+  pivot_longer(cols = everything(),
+               names_to = "Variable",
+               values_to = "Value")
+
+ggplot(data_scaled_long, aes(x = Variable, y = Value)) +
+  geom_boxplot(fill = "#E69F00", alpha = 0.7) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Boxplot Setelah Standarisasi",
+       y = "Z-Score")
+```
+
+### ANALISIS CLUSTERING
+### K-means
+```{r}
+#menentukan K menggunakan metode Elbow 
+wss <- sapply(1:10, function(k){
+kmeans(df_scaled, centers = k, nstart = 20)$tot.withinss
+})
+par(mfrow = c(1, 1))
+plot(1:10, wss, type = "b", pch = 19, frame = FALSE, 
+xlab = "Number of clusters K",
+ylab = "Total within-clusters sum of squares",
+main = "Elbow Method")
+```
+Berdasarkan metode Elbow, diperoleh jumlah cluster optimal sebanyak 3, yang ditunjukkan oleh adanya titik siku (elbow) pada k = 3, di mana penurunan nilai within-cluster sum of squares (WSS) mulai melandai setelah titik tersebut.
+
+
+```{r}
+# Silhouette Analysis
+avg_sil <- function(k) {
+km_res <- kmeans(df_scaled, centers = k, nstart = 25)
+ss <- silhouette(km_res$cluster, dist(df_scaled))
+mean(ss[, 3])
+}
+```
+
+```{r}
+k_values <- 2:10
+avg_sil_values <- sapply(k_values, avg_sil)
+par(mfrow = c(1, 1))
+plot(k_values, avg_sil_values, type = "b", pch = 19, frame = FALSE, 
+xlab = "Number of clusters K",
+ylab = "Average Silhouette Width",
+main = "Silhouette Analysis")
+```
+Berdasarkan metode Silhouette, diperoleh jumlah cluster optimal sebanyak 3, yang ditunjukkan oleh nilai rata-rata silhouette tertinggi pada k = 3. Hasil ini juga konsisten dengan metode Elbow, sehingga dipilih 3 cluster sebagai jumlah cluster terbaik dalam analisis K-Means.
+
+### K-means
+```{r}
+km_res <- kmeans(df_scaled, centers = 3)
+```
+
+### K-median
+```{r}
+# K-median
+kmed_res <- kcca(df_scaled, k = 4, family = kccaFamily("kmedians"))
+```
+
+#### menentukan parameter dbscan
+```{r}
+library(dbscan)
+library(cluster)
+```
+
+#### penentuan epsilon
+```{r}
+eps_values <- seq(0.1, 0.8, b = 0.05)
+minpts_values <- c(3, 4, 5)
+```
+
+#### loop untuk cari terbaik
+```{r}
+hasil_dbscan <- data.frame()
+
+for (minpts in minpts_values) {
+  for (eps in eps_values) {
+    
+    db <- dbscan(df_scaled, eps = eps, MinPts = minpts)
+    
+    # ambil cluster (buang noise = 0)
+    cluster <- db$cluster
+    
+    # cek minimal ada 2 cluster
+    if (length(unique(cluster)) > 1 && sum(cluster != 0) > 0) {
+      
+      sil <- silhouette(cluster, dist(df_scaled))
+      avg_sil <- mean(sil[, 3])
+      
+      hasil_dbscan <- rbind(hasil_dbscan,
+                            data.frame(eps = eps,
+                                       MinPts = minpts,
+                                       SI = avg_sil))
+    }
+  }
+}
+```
+
+#### hasil
+```{r}
+hasil_dbscan[order(-hasil_dbscan$SI), ][1:10, ]
+```
+
+#### ambil parameter terbaik
+```{r}
+best <- hasil_dbscan[which.max(hasil_dbscan$SI), ]
+best
+```
+
+
+### DBSCAN
+```{r}
+# DBSCAN 
+db_res <- dbscan(df_scaled, eps = 0.75, MinPts= 5)
+```
+
+```{r}
+# hasil cluster
+clustersdb <- db_res$assignment
+table(clustersdb)
+```
+
+#### penentuan bandwith terbaik meanshift
+```{r}
+library(meanShiftR)
+library(cluster)
+
+bandwidth_values <- seq(0.5, 3, by = 0.2)
+```
+
+
+```{r}
+hasil_ms <- data.frame()
+
+for (bw in bandwidth_values) {
+  
+  bw_vector <- rep(bw, ncol(df_scaled))  
+  
+  ms <- meanShift(df_scaled, bandwidth = bw_vector)
+  cluster <- ms$assignment
+  
+  if (length(unique(cluster)) > 1) {
+    
+    sil <- silhouette(cluster, dist(df_scaled))
+    avg_sil <- mean(sil[, 3])
+    
+    hasil_ms <- rbind(hasil_ms,
+                      data.frame(bandwidth = bw,
+                                 SI = avg_sil,
+                                 jumlah_cluster = length(unique(cluster))))
+  }
+}
+```
+
+
+#### hasil
+```{r}
+hasil_ms[order(-hasil_ms$SI), ]
+```
+
+### Mean Shift
+```{r}
+#Mean Shift
+bw <- 1.5
+
+ms_res <- meanShift(df_scaled, bandwidth = rep(bw, ncol(df_scaled)))
+```
+
+```{r}
+# hasil cluster
+clustersms <- ms_res$assignment
+table(clustersms)
+```
+
+
+### Fuzzy C-means
+```{r}
+#Fuzzy C-means
+fcm_res <- cmeans(df_scaled, centers = 2, m = 2) 
+```
+
+
+### Evaluasi jika hanya menggunakan data yang sudah di scalling
+```{r}
+library(cluster)
+library(fpc)
+
+dist_mat <- dist(df_scaled)
+
+# fungsi evaluasi
+evaluate_cluster <- function(cluster_label) {
+  sil <- mean(silhouette(cluster_label, dist_mat)[,3])
+  
+  return(c(Silhouette = sil))
+}
+
+# hasil semua metode
+eval_kmeans   <- evaluate_cluster(km_res$cluster)
+eval_kmedians <- evaluate_cluster(clusters(kmed_res))
+eval_dbscan   <- evaluate_cluster(db_res$cluster)
+eval_meanshift<- evaluate_cluster(ms_res$assignment)
+eval_fuzzy    <- evaluate_cluster(fcm_res$cluster)
+
+# gabungkan
+results <- rbind(
+  Kmeans = eval_kmeans,
+  Kmedians = eval_kmedians,
+  DBSCAN = eval_dbscan,
+  MeanShift = eval_meanshift,
+  Fuzzy = eval_fuzzy
+)
+
+round(results, 3)
+```
+
+
+### Coba dengan data yang sudah discalling lalu dilakukan pca
+```{r}
+pca <- prcomp(df_scaled)
+data_pca <- pca$x[,1:3]
+```
+
+### k-means
+```{r}
+km_res1 <- kmeans(data_pca, centers = 3)
+```
+
+
+### K-median
+```{r}
+# K-median
+kmed_res1 <- kcca(data_pca, k = 4, family = kccaFamily("kmedians"))
+```
+
+### DBSCAN
+```{r}
+# DBSCAN 
+db_res1 <- dbscan(data_pca, eps = 0.75, MinPts = 5)
+```
+
+### Mean Shift
+```{r}
+#Mean Shift
+ms_res1 <- meanShift(data_pca)
+```
+
+### Fuzzy C-means
+```{r}
+#Fuzzy C-means
+fcm_res1 <- cmeans(data_pca, centers = 2, m = 2) # m = 2 
+```
+
+
+### Evaluasi clustering dengan data scalling yang dilakukan pca
+```{r}
+library(cluster)
+library(fpc)
+
+dist_mat <- dist(data_pca)
+
+# fungsi evaluasi
+evaluate_cluster <- function(cluster_label) {
+  sil <- mean(silhouette(cluster_label, dist_mat)[,3])
+  
+  return(c(Silhouette = sil))
+}
+
+# hasil semua metode
+eval_kmeans   <- evaluate_cluster(km_res1$cluster)
+eval_kmedians <- evaluate_cluster(clusters(kmed_res1))
+eval_dbscan   <- evaluate_cluster(db_res1$cluster)
+eval_meanshift<- evaluate_cluster(ms_res1$assignment)
+eval_fuzzy    <- evaluate_cluster(fcm_res1$cluster)
+
+# gabungkan
+results <- rbind(
+  Kmeans = eval_kmeans,
+  Kmedians = eval_kmedians,
+  DBSCAN = eval_dbscan,
+  MeanShift = eval_meanshift,
+  Fuzzy = eval_fuzzy
+)
+
+round(results, 3)
+```
+Nilai Silhouette menunjukkan seberapa baik suatu data berada dalam cluster-nya dibandingkan cluster lain. Semakin tinggi nilainya, maka kualitas clustering semakin baik. Berdasarkan hasil yang diperoleh, Fussy memiliki performa terbaik dengan nilai Silhouette 0,459 yang menunjukkan bahwa cluster yang terbentuk cukup baik. 
+
+### EDA metode clustering terbaik berdasarkan hasil evaluasi yaitu metode Fuzzy C-means
+```{r}
+# ubah ke data frame
+df_cluster <- as.data.frame(df_scaled)
+
+# tambahkan label cluster
+df_cluster$Cluster <- as.factor(fcm_res$cluster)
+```
+
+
+```{r}
+mean_cluster <- df_cluster %>%
+  group_by(Cluster) %>%
+  summarise(across(where(is.numeric), mean))
+
+mean_cluster
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(openxlsx)
+
+# ringkasan statistik
+summary_cluster <- df_cluster %>%
+  group_by(Cluster) %>%
+  summarise(across(where(is.numeric),
+                   list(mean = mean, sd = sd),
+                   .names = "{.col}_{.fn}"))
+
+summary_long <- summary_cluster %>%
+  pivot_longer(cols = -Cluster,
+               names_to = "Variable_Stat",
+               values_to = "Value")
+
+# pisahkan nama variabel dan statistik
+summary_long <- summary_long %>%
+  separate(Variable_Stat, into = c("Variable", "Stat"), sep = "_(?=[^_]+$)")
+
+# ubah jadi format wide (Cluster jadi kolom)
+summary_final <- summary_long %>%
+  pivot_wider(names_from = Cluster,
+              values_from = Value)
+
+summary_final <- summary_final %>%
+  arrange(Variable, Stat)
+
+summary_final
+```
+
+```{r}
+write.xlsx(summary_final,
+           file = "EDA_Cluster_Fuzzy.xlsx",
+           sheetName = "Summary Cluster",
+           rowNames = FALSE)
+```
+
+```{r}
+#install.packages('pheatmap')
+```
+
+```{r}
+library(pheatmap)
+
+# hitung mean per cluster
+heatmap_data <- mean_cluster
+rownames(heatmap_data) <- paste("Cluster", heatmap_data$Cluster)
+heatmap_data$Cluster <- NULL
+
+pheatmap(heatmap_data,
+         scale = "column",
+         main = "Profil Cluster berdasarkan Rata-rata (Heatmap)")
+```
+Berdasarkan hasil analisis menggunakan metode Fuzzy C-Means dengan jumlah klaster optimal sebanyak 2, diperoleh bahwa klaster 1 memiliki nilai rata-rata yang lebih tinggi pada beberapa variabel utama, sehingga menunjukkan kelompok dengan tingkat risiko kesehatan yang lebih tinggi. Sementara itu, klaster 2 memiliki nilai rata-rata yang lebih rendah dan cenderung lebih homogen, sehingga merepresentasikan kelompok dengan risiko kesehatan yang lebih rendah.
+
+
+### Distribusi Age per Cluster
+```{r}
+library(ggplot2)
+
+ggplot(df_cluster, aes(x = Age, fill = as.factor(Cluster))) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribusi Age per Cluster")
+```
+Cluster 1 merepresentasikan kelompok dengan usia relatif lebih muda dan homogen, sedangkan Cluster 2 merepresentasikan kelompok dengan usia lebih tua dan variasi yang lebih besar. Perbedaan ini menunjukkan bahwa variabel usia berkontribusi dalam membedakan karakteristik antar cluster.
+
+### Visualisasi Tiap masing-masing metode clustering
+#### Visualisasi kmeans
+```{r}
+library(dplyr)
+
+data_plot <- as.data.frame(data_pca)
+data_plot$cluster <- as.factor(km_res$cluster)
+```
+
+```{r}
+library(ggplot2)
+
+# fungsi untuk ambil convex hull tiap cluster
+hull_data <- data_plot %>%
+  group_by(cluster) %>%
+  slice(chull(PC1, PC2))
+
+# plot
+ggplot(data_plot, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 2) +
+  
+  # polygon (area cluster)
+  geom_polygon(data = hull_data,
+               aes(fill = cluster),
+               alpha = 0.3,
+               color = "red") +
+  
+  labs(title = "PCA Cluster Plot with K-means",
+       x = "Principal Component 1",
+       y = "Principal Component 2") +
+  
+  theme_minimal()
+```
+
+#### Visualisasi Kmedian
+```{r}
+library(dplyr)
+
+data_plot <- as.data.frame(data_pca)
+data_plot$cluster <- as.factor(clusters(kmed_res))
+```
+
+```{r}
+library(ggplot2)
+
+# fungsi untuk ambil convex hull tiap cluster
+hull_data <- data_plot %>%
+  group_by(cluster) %>%
+  slice(chull(PC1, PC2))
+
+# plot
+ggplot(data_plot, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 2) +
+  
+  # polygon (area cluster)
+  geom_polygon(data = hull_data,
+               aes(fill = cluster),
+               alpha = 0.3,
+               color = "red") +
+  
+  labs(title = "PCA Cluster Plot with Kmedian",
+       x = "Principal Component 1",
+       y = "Principal Component 2") +
+  
+  theme_minimal()
+```
+
+#### Visualisasi Fuzzy C Means
+```{r}
+library(dplyr)
+
+data_plot <- as.data.frame(data_pca)
+data_plot$cluster <- as.factor(fcm_res$cluster)
+```
+
+```{r}
+library(ggplot2)
+
+# fungsi untuk ambil convex hull tiap cluster
+hull_data <- data_plot %>%
+  group_by(cluster) %>%
+  slice(chull(PC1, PC2))
+
+# plot
+ggplot(data_plot, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 2) +
+  
+  # polygon (area cluster)
+  geom_polygon(data = hull_data,
+               aes(fill = cluster),
+               alpha = 0.3,
+               color = "red") +
+  
+  labs(title = "PCA Cluster Plot with FCM",
+       x = "Principal Component 1",
+       y = "Principal Component 2") +
+  
+  theme_minimal()
+```
+
+#### visualisasi khusus dbscan dan meanshift
+```{r}
+library(dplyr)
+
+data_plot <- as.data.frame(data_pca)
+data_plot$cluster <- as.factor(db_res$cluster)
+```
+
+
+```{r}
+library(ggplot2)
+
+# fungsi untuk ambil convex hull tiap cluster
+hull_data <- data_plot %>%
+  group_by(cluster) %>%
+  slice(chull(PC1, PC2))
+
+# plot
+ggplot(data_plot, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 2) +
+  
+  # polygon (area cluster)
+  geom_polygon(data = hull_data,
+               aes(fill = cluster),
+               alpha = 0.3,
+               color = "red") +
+  
+  labs(title = "PCA Cluster Plot with DBSCAN",
+       x = "Principal Component 1",
+       y = "Principal Component 2") +
+  
+  theme_minimal()
+```
+
+#### visualisasi meanshift]
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Mean Shift
+bw <- 1.5
+ms_res <- meanShift(df_scaled, bandwidth = rep(bw, ncol(df_scaled)))
+
+# FIX: ubah ke vector
+ms_cluster <- unlist(ms_res$assignment)
+
+# PCA
+pca_res <- prcomp(df_scaled, center = TRUE, scale. = TRUE)
+
+data_pca_ms <- as.data.frame(pca_res$x[,1:2])
+colnames(data_pca_ms) <- c("PC1", "PC2")
+
+data_pca_ms$cluster <- as.factor(ms_cluster)
+
+# convex hull (aman sekarang)
+hull_data_ms <- data_pca_ms %>%
+  group_by(cluster) %>%
+  slice(chull(PC1, PC2))
+
+# plot
+ggplot(data_pca_ms, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 2) +
+  geom_polygon(data = hull_data_ms,
+               aes(fill = cluster),
+               alpha = 0.3) +
+  labs(title = "PCA Cluster Plot with Meanshift",
+       x = "Principal Component 1",
+       y = "Principal Component 2") +
+  
+  theme_minimal()
+```
+
+### Kesimpulan
+Berdasarkan hasil analisis yang telah dilakukan, dapat disimpulkan bahwa proses clustering pada data maternal health yang diawali dengan scaling dan reduksi dimensi menggunakan PCA mampu meningkatkan kualitas pengelompokan data. Hasil evaluasi menggunakan Silhouette Index menunjukkan bahwa metode Fuzzy C-Means dengan jumlah klaster optimal sebanyak 2 memberikan performa terbaik dengan nilai sebesar 0,459, yang mengindikasikan bahwa struktur klaster yang terbentuk cukup baik dan memiliki pemisahan yang jelas.
+Analisis eksplorasi data (EDA) pada metode terbaik, yaitu Fuzzy C-Means, diperoleh bahwa data terbagi menjadi dua klaster utama, di mana klaster 1 merepresentasikan kelompok dengan tingkat risiko kesehatan yang lebih tinggi, ditandai dengan nilai rata-rata variabel yang lebih besar, sedangkan klaster 2 merepresentasikan kelompok dengan risiko kesehatan yang lebih rendah dan karakteristik yang lebih homogen. Dengan demikian, metode Fuzzy C-Means mampu memberikan segmentasi yang jelas dan informatif dalam mengidentifikasi tingkat risiko kesehatan ibu hamil.
+
+Sumber Dataset: https://data.mendeley.com/datasets/8k9pvpmykk/1#:~:text=This%20dataset%20provides%20a%20comprehensive%20collection%20of%20maternal,blood%20pressure%2C%20gestational%20age%2C%20and%20fetal%20health%20status
