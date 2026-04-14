@@ -9,6 +9,7 @@ Cantika Latifatul Nur Ella (24031554023)
 Sofia Dwi Kinasih (24031554079)
 
 **Dosen Pengampu:**
+<br>
 Dinda Galuh Guminta, M.Stat.
 
 ---
