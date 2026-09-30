@@ -42,11 +42,11 @@ Penelitian ini membandingkan lima metode clustering untuk mengelompokkan pola ri
 
 ## Metode Analisis
 
-- **K-Means Clustering** — clustering berbasis rata-rata dengan Euclidean Distance
-- **K-Medians Clustering** — pengembangan K-Means yang robust terhadap outlier menggunakan Manhattan Distance
-- **DBSCAN (Density-Based Spatial Clustering of Applications with Noise)** — clustering berbasis kepadatan, mampu mendeteksi noise
-- **Mean Shift Clustering** — clustering adaptif tanpa asumsi jumlah cluster
-- **Fuzzy C-Means (FCM)** — clustering berbasis logika fuzzy dengan derajat keanggotaan ganda
+- **K-Means Clustering** - clustering berbasis rata-rata dengan Euclidean Distance
+- **K-Medians Clustering** - pengembangan K-Means yang robust terhadap outlier menggunakan Manhattan Distance
+- **DBSCAN (Density-Based Spatial Clustering of Applications with Noise)** - clustering berbasis kepadatan, mampu mendeteksi noise
+- **Mean Shift Clustering** - clustering adaptif tanpa asumsi jumlah cluster
+- **Fuzzy C-Means (FCM)** - clustering berbasis logika fuzzy dengan derajat keanggotaan ganda
 - Evaluasi dilakukan menggunakan **Silhouette Index**.
 
 Analisis dilakukan menggunakan bahasa pemrograman **R** dan dipublikasikan melalui **RPubs**
